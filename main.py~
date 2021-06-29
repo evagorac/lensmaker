@@ -87,7 +87,7 @@ def is_within_bounds(surface_coord):
     cast_point = surface_coord * (init_center_dist / np.dot(surface_coord.T, y_u))
 
     # plug point into ellipse equation and see if <= 1
-    return np.dot(cast_point, x_u) ** 2 / r_x ** 2 + np.dot(cast_point, z_u) ** 2 / r_z ** 2 <= 1
+    
 
 n = get_surface_normal(init_center_dist * y_u)
 print(n)
