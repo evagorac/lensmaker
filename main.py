@@ -30,8 +30,8 @@ h_fov = 90
 v_fov = 90
 
 # step sizes refer to the length of each line segment that composes the lens approximation
-h_step = 2
-v_step = 3
+h_step = .25
+v_step = 1
 
 # this param is the seed distance from the OP to the lens
 init_center_dist = 25
@@ -132,13 +132,20 @@ seed_surface_coord = np.array([[0],[init_center_dist],[0]])
 slices = [get_horizontal_slice(seed_surface_coord)]
 
 current_coord = seed_surface_coord
-while(is_within_bounds(current_coord))
+while(is_within_bounds(current_coord)):
     normal = get_surface_normal(current_coord)
     delta = get_next_surface_coord_delta(normal, horizontal=False)
     current_coord = current_coord + delta
-    slices.append(current_coord)
+    slices.append(get_horizontal_slice(current_coord))
 
+current_coord = seed_surface_coord
+while(is_within_bounds(current_coord)):
+    normal = get_surface_normal(current_coord)
+    delta = -1 * get_next_surface_coord_delta(normal, horizontal=False)
+    current_coord = current_coord + delta
+    slices.insert(0, get_horizontal_slice(current_coord))
 
-
-ax.plot(hs[:,0,0], hs[:,1,0], hs[:,2,0])
+for slice in slices:
+    s = np.array(slice)
+    ax.plot(s[:,0,0], s[:,1,0], s[:,2,0])
 plt.show()
