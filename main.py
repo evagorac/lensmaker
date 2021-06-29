@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 '''
 script to generate lens shape to reflect a point source into user's eye
@@ -19,7 +20,7 @@ inputs to this script are:
     desired horizontal fov
     desired vertical fov
     horiztonal and vertical step sizes
-    lens initial distance from OP through center axis
+    lens initial distance from OP through center axis (defines the seed surface point)
     coordinates of point source
 
 The above parameters will define an array of points bound within an ellipse that will iteravely generate the lens surface starting from the center
@@ -33,7 +34,7 @@ h_step = 2
 v_step = 3
 
 # this param is the seed distance from the OP to the lens
-init_center_dist = 50
+init_center_dist = 25
 
 # coordinates of the point source relative to OP
 src_coord = np.array([[50], [-10], [0]])
@@ -56,7 +57,8 @@ def get_surface_normal(surface_coord):
     OP_vec_unit = OP_vec / np.linalg.norm(OP_vec)
     src_vec_unit = src_vec / np.linalg.norm(src_vec)
 
-    return (OP_vec_unit + src_vec_unit) / 2
+    dir_vec = OP_vec_unit + src_vec_unit
+    return dir_vec 
 
 def get_next_surface_coord_delta(prev_surface_normal, horizontal=True):
     # returns a vector of mag h_step or v_step that denotes the displacement from the previous surface_coord along the lens surface
@@ -80,21 +82,63 @@ def is_within_bounds(surface_coord):
     # this function will take the surface coord and cast it to this plane, then see if it lies within the ellipse
     
     # first get ellipse param (ellipse in x-z plane)
-    r_x = init_center_dist * np.sin(h_fov/2 * np.pi/180)
-    r_z = init_center_dist * np.sin(v_fov/2 * np.pi/180)
+    r_x = init_center_dist * np.tan(h_fov/2 * np.pi/180)
+    r_z = init_center_dist * np.tan(v_fov/2 * np.pi/180)
 
     # cast point to ellipse plane
     cast_point = surface_coord * (init_center_dist / np.dot(surface_coord.T, y_u))
 
     # plug point into ellipse equation and see if <= 1
-    return np.dot(cast_point, x_u) ** 2 / r_x ** 2 + np.dot(cast_point, z_u) ** 2 / r_z ** 2 <= 1
+    within = (np.dot(cast_point.T, x_u) ** 2) / (r_x ** 2) + (np.dot(cast_point.T, z_u) ** 2) / (r_z ** 2) <= 1
+    return within.item()
 
-n = get_surface_normal(init_center_dist * y_u)
-print(n)
-d = get_next_surface_coord_delta(n)
-print(d)
-print(np.linalg.norm(d))
+def get_horizontal_slice(seed_surface_coord):
+    h_slice = [seed_surface_coord]
+
+    current_coord = seed_surface_coord
+    while(is_within_bounds(current_coord)):
+        normal = get_surface_normal(current_coord)
+        delta = get_next_surface_coord_delta(normal)
+        current_coord = current_coord + delta
+        h_slice.append(current_coord)
+
+    current_coord = seed_surface_coord
+    while(is_within_bounds(current_coord)):
+        normal = get_surface_normal(current_coord)
+        delta = -1 * get_next_surface_coord_delta(normal)
+        current_coord = current_coord + delta
+        h_slice.insert(0, current_coord)
+
+    return np.array(h_slice)
+
+'''
+begin plt config
+'''
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d', proj_type = 'ortho')
+ax.scatter(src_coord[0][0], src_coord[1][0], src_coord[2][0])
+ax.scatter(0,0,0)
+
+ax.set_xlabel('X Label')
+ax.set_ylabel('Y Label')
+ax.set_zlabel('Z Label')
+plt.xlim(-20,50)
+plt.ylim(-20,50)
+
+'''
+begin lens generation and plotting
+'''
+seed_surface_coord = np.array([[0],[init_center_dist],[0]])
+slices = [get_horizontal_slice(seed_surface_coord)]
+
+current_coord = seed_surface_coord
+while(is_within_bounds(current_coord))
+    normal = get_surface_normal(current_coord)
+    delta = get_next_surface_coord_delta(normal, horizontal=False)
+    current_coord = current_coord + delta
+    slices.append(current_coord)
 
 
 
-
+ax.plot(hs[:,0,0], hs[:,1,0], hs[:,2,0])
+plt.show()
