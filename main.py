@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+import errno
+
+
 '''
 script to generate lens shape to reflect a point source into user's eye
 output is a series of csv files that can be imported by solidworks to approximately define the lens shape
@@ -27,14 +31,14 @@ The above parameters will define an array of points bound within an ellipse that
 '''
 
 h_fov = 90
-v_fov = 90
+v_fov = 45
 
 # step sizes refer to the length of each line segment that composes the lens approximation
 h_step = .25
-v_step = 1
+v_step = 5
 
 # this param is the seed distance from the OP to the lens
-init_center_dist = 25
+init_center_dist = 50
 
 # coordinates of the point source relative to OP
 src_coord = np.array([[50], [-10], [0]])
@@ -122,11 +126,12 @@ ax.scatter(0,0,0)
 ax.set_xlabel('X Label')
 ax.set_ylabel('Y Label')
 ax.set_zlabel('Z Label')
-plt.xlim(-20,50)
-plt.ylim(-20,50)
+plt.xlim(-100,100)
+plt.ylim(-100,100)
+ax.set_zlim(-100,100)
 
 '''
-begin lens generation and plotting
+begin lens generation
 '''
 seed_surface_coord = np.array([[0],[init_center_dist],[0]])
 slices = [get_horizontal_slice(seed_surface_coord)]
@@ -145,7 +150,38 @@ while(is_within_bounds(current_coord)):
     current_coord = current_coord + delta
     slices.insert(0, get_horizontal_slice(current_coord))
 
+'''
+begin txt output for solidworks
+'''
+
+filename = "./curves/curve_"
+if not os.path.exists(os.path.dirname(filename)):
+    try:
+        os.makedirs(os.path.dirname(filename))
+    except OSError as exc: # Guard against race condition
+        if exc.errno != errno.EEXIST:
+            raise
+for i in range(len(slices)):
+    with open(filename + str(i) + ".txt", 'w') as f:
+        for point in slices[i]:
+            f.write(str(point[0,0]))
+            f.write("\t")
+            f.write(str(point[1,0]))
+            f.write("\t")
+            f.write(str(point[2,0]))
+            f.write('\n')
+
 for slice in slices:
     s = np.array(slice)
     ax.plot(s[:,0,0], s[:,1,0], s[:,2,0])
+
+'''
+begin plotting
+'''
+# plot average eyeball for reference
+steps = 100
+d = 24 # diameter of eye in mm
+t = np.linspace(0, 2*np.pi, num=steps)
+ax.plot(d * np.sin(t), d * np.cos(t), np.zeros(steps))
 plt.show()
+
